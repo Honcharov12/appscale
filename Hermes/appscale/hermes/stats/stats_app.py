@@ -154,60 +154,43 @@ def get_local_stats_api_routes(is_lb_node, is_tq_node):
   ]
 
 
-def get_cluster_stats_api_routes(is_lb):
+def get_cluster_stats_api_routes():
   """ Creates stats sources and API handlers for providing cluster
-  node, processes and proxies stats (on master node only).
-  If this node is slave, it creates stub handlers for cluster stats routes.
+  node, processes and proxies stats.
 
-  Args:
-    is_lb: A boolean indicating whether this node is load balancer.
-  Returns:
     A list of route-handler tuples.
   """
-  if is_lb:
-    # Only LB nodes provide cluster stats
-    cluster_node_stats_handler = HandlerInfo(
-      handler_class=CurrentClusterStatsHandler,
-      init_kwargs={'source': cluster_nodes_stats,
-                   'default_include_lists': DEFAULT_INCLUDE_LISTS}
-    )
-    cluster_processes_stats_handler = HandlerInfo(
-      handler_class=CurrentClusterStatsHandler,
-      init_kwargs={'source': cluster_processes_stats,
-                   'default_include_lists': DEFAULT_INCLUDE_LISTS}
-    )
-    cluster_proxies_stats_handler = HandlerInfo(
-      handler_class=CurrentClusterStatsHandler,
-      init_kwargs={'source': cluster_proxies_stats,
-                   'default_include_lists': DEFAULT_INCLUDE_LISTS}
-    )
-    cluster_taskqueue_stats_handler = HandlerInfo(
-      handler_class=CurrentClusterStatsHandler,
-      init_kwargs={'source': cluster_taskqueue_stats,
-                   'default_include_lists': DEFAULT_INCLUDE_LISTS}
-    )
-    cluster_rabbitmq_stats_handler = HandlerInfo(
-      handler_class=CurrentClusterStatsHandler,
-      init_kwargs={'source': cluster_rabbitmq_stats,
-                   'default_include_lists': DEFAULT_INCLUDE_LISTS}
-    )
-    cluster_push_queue_stats_handler = HandlerInfo(
-      handler_class=CurrentClusterStatsHandler,
-      init_kwargs={'source': cluster_push_queues_stats,
-                   'default_include_lists': DEFAULT_INCLUDE_LISTS}
-    )
-  else:
-    # Stub handler for slave nodes
-    cluster_stub_handler = HandlerInfo(
-      handler_class=Respond404Handler,
-      init_kwargs={'reason': 'Only LB nodes provide cluster stats'}
-    )
-    cluster_node_stats_handler = cluster_stub_handler
-    cluster_processes_stats_handler = cluster_stub_handler
-    cluster_proxies_stats_handler = cluster_stub_handler
-    cluster_taskqueue_stats_handler = cluster_stub_handler
-    cluster_rabbitmq_stats_handler = cluster_stub_handler
-    cluster_push_queue_stats_handler = cluster_stub_handler
+
+  cluster_node_stats_handler = HandlerInfo(
+    handler_class=CurrentClusterStatsHandler,
+    init_kwargs={'source': cluster_nodes_stats,
+                 'default_include_lists': DEFAULT_INCLUDE_LISTS}
+  )
+  cluster_processes_stats_handler = HandlerInfo(
+    handler_class=CurrentClusterStatsHandler,
+    init_kwargs={'source': cluster_processes_stats,
+                 'default_include_lists': DEFAULT_INCLUDE_LISTS}
+  )
+  cluster_proxies_stats_handler = HandlerInfo(
+    handler_class=CurrentClusterStatsHandler,
+    init_kwargs={'source': cluster_proxies_stats,
+                 'default_include_lists': DEFAULT_INCLUDE_LISTS}
+  )
+  cluster_taskqueue_stats_handler = HandlerInfo(
+    handler_class=CurrentClusterStatsHandler,
+    init_kwargs={'source': cluster_taskqueue_stats,
+                 'default_include_lists': DEFAULT_INCLUDE_LISTS}
+  )
+  cluster_rabbitmq_stats_handler = HandlerInfo(
+    handler_class=CurrentClusterStatsHandler,
+    init_kwargs={'source': cluster_rabbitmq_stats,
+                 'default_include_lists': DEFAULT_INCLUDE_LISTS}
+  )
+  cluster_push_queue_stats_handler = HandlerInfo(
+    handler_class=CurrentClusterStatsHandler,
+    init_kwargs={'source': cluster_push_queues_stats,
+                 'default_include_lists': DEFAULT_INCLUDE_LISTS}
+  )
 
   routes = {
     '/stats/cluster/nodes': cluster_node_stats_handler,
