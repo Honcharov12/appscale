@@ -5,6 +5,7 @@ from datetime import datetime
 import logging
 
 from constants import INDEX_LOCALE_FIELD
+from search_exceptions import UnknownFieldException
 from solr_interface import Field
 
 from google.appengine.datastore.document_pb import FieldValue
@@ -53,8 +54,7 @@ def add_gae_doc(doc, result, index):
       if field['name'] == "{}_{}".format(index.name, field_name):
         field_type = field['type']
     if field_type == "":
-      logging.warning(
-        'Unable to find type for {}_{}'.format(index.name, field_name))
+      raise UnknownFieldException('Unable to find type for {}_{}'.format(index.name, field_name))
     add_field_value(new_value, doc[key], field_type)
 
 
@@ -81,7 +81,7 @@ def add_field_value(new_value, value, ftype):
     new_value.set_string_value(value)
     new_value.set_type(FieldValue.ATOM)
   elif ftype == Field.NUMBER:
-    new_value.set_string_value(value)
+    new_value.set_string_value(str(value))
     new_value.set_type(FieldValue.NUMBER)
   elif ftype == Field.GEO:
     geo = new_value.mutable_geo()
@@ -93,6 +93,4 @@ def add_field_value(new_value, value, ftype):
     new_value.set_string_value(value)
     new_value.set_type(FieldValue.TEXT)
   else:
-    logging.warning("Default field found! {}".format(ftype))
-    new_value.set_string_value(value)
-    new_value.set_type(FieldValue.TEXT)
+    raise UnknownFieldException("Default field {} not found!".format(ftype))

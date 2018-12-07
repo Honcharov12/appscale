@@ -12,3 +12,6 @@ class NotConfiguredError(SearchException):
   """ Search is not configured. """
   pass
 
+class UnknownFieldException(SearchException):
+  """ Field is not defined """
+  pass
