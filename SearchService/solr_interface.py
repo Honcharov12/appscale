@@ -15,6 +15,7 @@ import search_exceptions
 from constants import (
   HTTP_OK, INDEX_NAME_FIELD, INDEX_LOCALE_FIELD, SOLR_SERVER_PORT
 )
+from protobuf_helper import solr_to_gae
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../AppServer"))
 from google.appengine.datastore.document_pb import FieldValue
@@ -322,8 +323,8 @@ class Solr(object):
       index, query, projection_fields, sort_fields, limit, offset
     )
     solr_results = self.__execute_query(solr_query_params)
-    logging.debug("Solr results: {0}".format(solr_results))
-    self.__convert_to_gae_results(result, solr_results, index)
+    logging.debug("Solr results: {}".format(solr_results))
+    solr_to_gae(result, solr_results, index)
 
   def __execute_query(self, solr_query_params):
     """ Executes query on SOLR.
