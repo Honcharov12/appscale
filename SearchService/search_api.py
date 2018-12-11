@@ -6,6 +6,7 @@ import uuid
 
 import search_exceptions
 import solr_interface
+from protobuf_helper import add_gae_doc
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../AppServer"))
 from google.appengine.api.search import search_service_pb
@@ -200,9 +201,10 @@ class SearchService():
     response = search_service_pb.SearchResponse()
     try:
       index = self.solr_conn.get_index(app_id, namespace, index_name)
-      self.solr_conn.run_query(
+      solr_results = self.solr_conn.run_query(
         response, index, query, projection_fields, sort_fields, limit, offset
       )
+      self.__fill_search_response(response, solr_results, index)
     except search_exceptions.InternalError as internal_error:
       logging.error("Exception while doing a search.")
       logging.exception(internal_error)
@@ -214,3 +216,20 @@ class SearchService():
      
     logging.debug("Search response: {0}".format(response))
     return response.Encode(), 0, ""
+
+  def __fill_search_response(self, gae_results, solr_results, index):
+    """ Converts SOLR results in to GAE compatible documents.
+
+    Args:
+      gae_results: A search_service_pb.SearchResponse.
+      solr_results: A dictionary returned from SOLR on a search query.
+      index: A Index that we are querying for.
+    """
+    gae_results.set_matched_count(
+      len(solr_results['response']['docs']) +
+      int(solr_results['response']['start'])
+    )
+    gae_results.mutable_status().set_code(search_service_pb.SearchServiceError.OK)
+    for doc in solr_results['response']['docs']:
+      new_result = gae_results.add_result()
+      add_gae_doc(doc, new_result, index)

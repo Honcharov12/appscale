@@ -15,11 +15,9 @@ import search_exceptions
 from constants import (
   HTTP_OK, INDEX_NAME_FIELD, INDEX_LOCALE_FIELD, SOLR_SERVER_PORT
 )
-from protobuf_helper import solr_to_gae
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../AppServer"))
 from google.appengine.datastore.document_pb import FieldValue
-from google.appengine.api.search import search_service_pb
 
 
 def get_index_name(app_id, namespace, name):
@@ -318,13 +316,15 @@ class Solr(object):
       sort_fields: a list of tuples of form (<FieldName>, "desc"/"asc")
       limit: a max number of document to return.
       offset: an integer representing offset.
+    Returns:
+      A dictionary returned from SOLR on a search query
     """
     solr_query_params = query_converter.prepare_solr_query(
       index, query, projection_fields, sort_fields, limit, offset
     )
     solr_results = self.__execute_query(solr_query_params)
     logging.debug("Solr results: {}".format(solr_results))
-    solr_to_gae(result, solr_results, index)
+    return solr_results
 
   def __execute_query(self, solr_query_params):
     """ Executes query on SOLR.
