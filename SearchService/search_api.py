@@ -204,7 +204,7 @@ class SearchService():
       solr_results = self.solr_conn.run_query(
         response, index, query, projection_fields, sort_fields, limit, offset
       )
-      self.__fill_search_response(response, solr_results, index)
+      self._fill_search_response(response, solr_results, index)
     except search_exceptions.InternalError as internal_error:
       logging.error("Exception while doing a search.")
       logging.exception(internal_error)
@@ -217,7 +217,8 @@ class SearchService():
     logging.debug("Search response: {0}".format(response))
     return response.Encode(), 0, ""
 
-  def __fill_search_response(self, gae_results, solr_results, index):
+  @staticmethod
+  def _fill_search_response(gae_results, solr_results, index):
     """ Converts SOLR results in to GAE compatible documents.
 
     Args:
