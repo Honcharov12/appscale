@@ -10,13 +10,15 @@ from solr_interface import Field
 from google.appengine.datastore.document_pb import FieldValue
 
 
-def add_gae_doc(solr_doc, gae_doc, index):
-  """ Add a new document to a query result.
+def fill_protobuf_doc(gae_doc, solr_doc, index):
+  """ Fill new document from a query result.
 
   Args:
     solr_doc: A dictionary of SOLR document attributes.
     gae_doc: A search_service_pb.SearchResult.
     index: Index we queried for.
+  Raises:
+    UnknownFieldException: If there are no some fields in indexes schema.
   """
   new_doc = gae_doc.mutable_document()
   new_doc.set_id(solr_doc['id'])
@@ -35,16 +37,18 @@ def add_gae_doc(solr_doc, gae_doc, index):
         field_type = field['type']
     if field_type == "":
       raise UnknownFieldException('Unable to find type for {}_{}'.format(index.name, field_name))
-    add_field_value(new_value, solr_doc[key], field_type)
+    fill_protobuf_field(new_value, solr_doc[key], field_type)
 
 
-def add_field_value(gae_field, solr_field, ftype):
-  """ Adds a value to a result field.
+def fill_protobuf_field(gae_field, solr_field, ftype):
+  """ Fills search_service_pb.SearchResult field with a value.
 
   Args:
     gae_field: A search_service_pb.SearchResult field.
     solr_field: Field value in SOLR.
     ftype: A str, the field type.
+  Raises:
+    UnknownFieldException: If default field is not found.
   """
   if ftype == Field.DATE:
     value = calendar.timegm(datetime.strptime(

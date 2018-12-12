@@ -6,7 +6,7 @@ import uuid
 
 import search_exceptions
 import solr_interface
-from protobuf_helper import add_gae_doc
+from protobuf_helper import fill_protobuf_doc
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../AppServer"))
 from google.appengine.api.search import search_service_pb
@@ -232,4 +232,4 @@ class SearchService():
     gae_results.mutable_status().set_code(search_service_pb.SearchServiceError.OK)
     for doc in solr_results['response']['docs']:
       new_result = gae_results.add_result()
-      add_gae_doc(doc, new_result, index)
+      fill_protobuf_doc(new_result, doc, index)
