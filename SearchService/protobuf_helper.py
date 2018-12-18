@@ -4,7 +4,9 @@ import calendar
 from datetime import datetime
 
 from constants import INDEX_LOCALE_FIELD
-from search_exceptions import UnknownFieldTypeException
+from search_exceptions import (
+  UnknownFieldException, UnknownFieldTypeException
+)
 from solr_interface import Field
 
 from google.appengine.datastore.document_pb import FieldValue
@@ -18,7 +20,7 @@ def fill_protobuf_doc(gae_doc, solr_doc, index):
     solr_doc: A dictionary of SOLR document attributes.
     index: Index we queried for.
   Raises:
-    UnknownFieldTypeException: If solr_doc contains field(s) which is missing
+    UnknownFieldException: If solr_doc contains field(s) which is missing
      in index schema.
   """
   new_doc = gae_doc.mutable_document()
@@ -37,10 +39,9 @@ def fill_protobuf_doc(gae_doc, solr_doc, index):
       if field['name'] == "{}_{}".format(index.name, field_name):
         field_type = field['type']
     if field_type == "":
-      raise UnknownFieldTypeException('Unable to find type for {}_{}'.format(
+      raise UnknownFieldException('Unable to find type for {}_{}'.format(
         index.name, field_name))
     fill_protobuf_field(new_value, solr_doc[key], field_type)
-
 
 def fill_protobuf_field(gae_field, solr_field, ftype):
   """ Fills search_service_pb.SearchResult field with a value.
