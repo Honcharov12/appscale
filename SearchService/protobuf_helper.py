@@ -4,7 +4,7 @@ import calendar
 from datetime import datetime
 
 from constants import INDEX_LOCALE_FIELD
-from search_exceptions import UnknownFieldException
+from search_exceptions import UnknownFieldTypeException
 from solr_interface import Field
 
 from google.appengine.datastore.document_pb import FieldValue
@@ -14,11 +14,12 @@ def fill_protobuf_doc(gae_doc, solr_doc, index):
   """ Fill new document from a query result.
 
   Args:
-    solr_doc: A dictionary of SOLR document attributes.
     gae_doc: A search_service_pb.SearchResult.
+    solr_doc: A dictionary of SOLR document attributes.
     index: Index we queried for.
   Raises:
-    UnknownFieldException: If there are no some fields in indexes schema.
+    UnknownFieldTypeException: If solr_doc contains field(s) which is missing
+     in index schema.
   """
   new_doc = gae_doc.mutable_document()
   new_doc.set_id(solr_doc['id'])
@@ -36,7 +37,8 @@ def fill_protobuf_doc(gae_doc, solr_doc, index):
       if field['name'] == "{}_{}".format(index.name, field_name):
         field_type = field['type']
     if field_type == "":
-      raise UnknownFieldException('Unable to find type for {}_{}'.format(index.name, field_name))
+      raise UnknownFieldTypeException('Unable to find type for {}_{}'.format(
+        index.name, field_name))
     fill_protobuf_field(new_value, solr_doc[key], field_type)
 
 
@@ -45,10 +47,10 @@ def fill_protobuf_field(gae_field, solr_field, ftype):
 
   Args:
     gae_field: A search_service_pb.SearchResult field.
-    solr_field: Field value in SOLR.
+    solr_field: A dict representing Solr document field.
     ftype: A str, the field type.
   Raises:
-    UnknownFieldException: If default field is not found.
+    UnknownFieldTypeException: If default field is not found.
   """
   if ftype == Field.DATE:
     value = calendar.timegm(datetime.strptime(
@@ -77,4 +79,5 @@ def fill_protobuf_field(gae_field, solr_field, ftype):
     gae_field.set_string_value(solr_field)
     gae_field.set_type(FieldValue.TEXT)
   else:
-    raise UnknownFieldException("Default field {} not found!".format(ftype))
+    raise UnknownFieldTypeException("Solr document contains a field "
+                                    "of unknown type: {}".format(ftype))
