@@ -28,13 +28,13 @@ def from_pb_field(pb_field, doc_lang):
   else:
     field_language = doc_lang
 
-  field_type, field_value = _set_pb_value(pb_value)
+  field_type, field_value = _get_type_and_value(pb_value)
 
   return models.Field(field_name, field_language, field_type, field_value)
 
 
-def _set_pb_value(pb_value):
-  """ Sets value for Field object.
+def _get_type_and_value(pb_value):
+  """ Gets type and value of FieldValue object.
 
   Args:
     pb_value: An object of Protocol Buffer FieldValue class.
@@ -42,21 +42,29 @@ def _set_pb_value(pb_value):
     A tuple of Field type and Field value.
   """
 
-  # Number between 0 and 5
   field_type = pb_value.type()
-  result_type = document_pb.FieldValue.ContentType_Name(field_type)
 
-  if field_type in [FieldValue.TEXT, FieldValue.HTML, FieldValue.ATOM]:
+  if field_type == FieldValue.TEXT:
     result_value = pb_value.string_value()
+    result_type = models.Field.Type.TEXT
+  elif field_type == FieldValue.HTML:
+    result_value = pb_value.string_value()
+    result_type = models.Field.Type.HTML
+  elif field_type == FieldValue.ATOM:
+    result_value = pb_value.string_value()
+    result_type = models.Field.Type.ATOM
   elif field_type == FieldValue.NUMBER:
     result_value = float(pb_value.string_value())
+    result_type = models.Field.Type.NUMBER
   elif field_type == FieldValue.DATE:
     result_value = time.gmtime(int(pb_value.string_value()) // 1000)
+    result_type = models.Field.Type.DATE
   elif field_type == FieldValue.GEO:
     geo = pb_value.geo()
     lat = float(geo.lat())
     lng = float(geo.lng())
     result_value = (lat, lng)
+    result_type = models.Field.Type.GEO
 
   return (result_type, result_value)
 
@@ -92,21 +100,30 @@ def to_pb_field(field):
   pb_value = pb_field.mutable_value()
   pb_value.set_language(field.language)
 
-  field_type = field.get_type_number()
-  pb_value.set_type(field_type)
+  field_type = field.type
 
-  if field_type in [FieldValue.TEXT, FieldValue.HTML, FieldValue.ATOM]:
+  if field_type == models.Field.Type.TEXT:
     pb_value.set_string_value(field.value)
-  elif field_type == FieldValue.NUMBER:
+    pb_value.set_type(FieldValue.TEXT)
+  elif field_type == models.Field.Type.HTML:
+    pb_value.set_string_value(field.value)
+    pb_value.set_type(FieldValue.HTML)
+  elif field_type == models.Field.Type.ATOM:
+    pb_value.set_string_value(field.value)
+    pb_value.set_type(FieldValue.ATOM)
+  elif field_type == models.Field.Type.NUMBER:
     pb_value.set_string_value(str(field.value))
-  elif field_type == FieldValue.DATE:
+    pb_value.set_type(FieldValue.NUMBER)
+  elif field_type == models.Field.Type.DATE:
     value = calendar.timegm(field.value)
     pb_value.set_string_value(str(int(value * 1000)))
-  elif field_type == FieldValue.GEO:
+    pb_value.set_type(FieldValue.DATE)
+  elif field_type == models.Field.Type.GEO:
     geo = pb_value.mutable_geo()
     lat, lng = field.value
     geo.set_lat(lat)
     geo.set_lng(lng)
+    pb_value.set_type(FieldValue.GEO)
 
   return pb_field
 
