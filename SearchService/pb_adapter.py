@@ -10,7 +10,7 @@ from google.appengine.datastore.document_pb import FieldValue
 
 import models
 
-def from_pb_field(pb_field, doc_lang):
+def _from_pb_field(pb_field, doc_lang):
   """ Converter from Protocol Buffer field.
 
   Args:
@@ -76,15 +76,20 @@ def _fill_pb_field(pb_field, field):
     field: An object of unified Field class.
   """
 
-  converted = to_pb_field(field)
+  converted = _to_pb_field(field)
   pb_field.set_name(converted.name())
   value = pb_field.mutable_value()
   value.set_type(converted.value().type())
   value.set_language(converted.value().language())
-  value.set_string_value(converted.value().string_value())
+  if value.type() != FieldValue.GEO:
+    value.set_string_value(converted.value().string_value())
+  else:
+    geo = value.mutable_geo()
+    geo.set_lat(converted.value().geo().lat())
+    geo.set_lng(converted.value().geo().lng())
 
 
-def to_pb_field(field):
+def _to_pb_field(field):
   """ Converter to Protocol Buffer field.
 
   Args:
@@ -142,7 +147,7 @@ def from_pb_document(pb_doc):
   doc_fields = []
 
   for field in pb_doc.field_list():
-    doc_fields.append(from_pb_field(field, doc_language))
+    doc_fields.append(_from_pb_field(field, doc_language))
 
   return models.Document(doc_id, doc_language, doc_fields)
 
