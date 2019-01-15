@@ -5,7 +5,9 @@ import time
 import copy
 from future.utils import iteritems
 
-from appscale.common.service_stats import matchers, metrics, categorizers
+from appscale.common.service_stats import (
+  matchers, metrics, categorizers, summarizers
+)
 
 
 class UnknownRequestField(AttributeError):
@@ -25,10 +27,12 @@ DEFAULT_CUMULATIVE_COUNTERS = {
   "all": matchers.ANY,
   "4xx": matchers.CLIENT_ERROR,
   "5xx": matchers.SERVER_ERROR,
+  "latency": summarizers.AttrValue("latency"),
   categorizers.ExactValueCategorizer("by_app", field="app"): {
     "all": matchers.ANY,
     "4xx": matchers.CLIENT_ERROR,
-    "5xx": matchers.SERVER_ERROR
+    "5xx": matchers.SERVER_ERROR,
+    "latency": summarizers.AttrValue("latency")
   }
 }
 # This counters config corresponds to the following output:
@@ -38,9 +42,10 @@ DEFAULT_CUMULATIVE_COUNTERS = {
 #   "all": 27365,
 #   "4xx": 97,
 #   "5xx": 15,
+#   "latency": 139297199,
 #   "by_app": {
-#     "guestbook": {"all": 18321, "4xx": 90, "5xx": 13},
-#     "validity": {"all": 9044, "4xx": 7, "5xx": 2}
+#     "guestbook": {"all": 18321, "4xx": 90, "5xx": 13, "latency": 92864799},
+#     "validity": {"all": 9044, "4xx": 7, "5xx": 2, "latency": 46432400}
 #   }
 # }
 
@@ -287,7 +292,9 @@ class ServiceStats(object):
     for counter_pair in iteritems(counters_config):
       # Counters config can contain following types of items:
       #  - str->Matcher
+      #  - str->Summarizer
       #  - Categorizer->Matcher
+      #  - Categorizer->Summarizer
       #  - Categorizer->nested config with the same structure
 
       if isinstance(counter_pair[1], matchers.RequestMatcher):
@@ -297,9 +304,15 @@ class ServiceStats(object):
           continue
 
       if isinstance(counter_pair[0], str):
-        # Increment single counter if key is str
         counter_name = counter_pair[0]
-        counters_dict[counter_name] += 1
+        if isinstance(counter_pair[1], summarizers.Summarizer):
+          # Increase dict value if counter_pair[1] is Summarizer
+          summarizer = counter_pair[1]
+          counters_dict[counter_name] += \
+            summarizer.get_value_to_add(request_info)
+        elif isinstance(counter_pair[1], matchers.RequestMatcher):
+          # Increment dict value if counter_pair[1] is Matcher
+          counters_dict[counter_name] += 1
         continue
 
       # counter_pair[0] is instance of categorizers.Categorizer
@@ -311,10 +324,16 @@ class ServiceStats(object):
       if isinstance(counter_pair[1], dict):
         # Update nested counters
         nested_config = counter_pair[1]
-        nested_counters = _get_nested_dict(category_counters, category, nested_config)
+        nested_counters = _get_nested_dict(category_counters,
+                                           category, nested_config)
         self._increment_counters(nested_config, nested_counters, request_info)
-      else:
-        # Update category counter
+      elif isinstance(counter_pair[1], summarizers.Summarizer):
+        # Increase if counter_pair[1] is Summarizer
+        summarizer = counter_pair[1]
+        category_counters[category] = category_counters.get(category, 0) + \
+                                      summarizer.get_value_to_add(request_info)
+      elif isinstance(counter_pair[1], matchers.RequestMatcher):
+        # Increment if counter_pair[1] is Matcher
         category_counters[category] = category_counters.get(category, 0) + 1
 
   def get_cumulative_counters(self):
@@ -491,10 +510,12 @@ def _fill_zero_counters_dict(counters_config, counters_dict):
   for counter_pair in iteritems(counters_config):
     # Counters config can contain following types of items:
     #  - str->Matcher
+    #  - str->Summarizer
     #  - Categorizer->Matcher
+    #  - Categorizer->Summarizer
     #  - Categorizer->nested config with the same structure
     if isinstance(counter_pair[0], str):
-      # Increment single counter if key is str
+      # Set single counter if key is str
       counter_name = counter_pair[0]
       counters_dict[counter_name] = 0
     else:
