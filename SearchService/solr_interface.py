@@ -316,6 +316,7 @@ class Solr(object):
       sort_fields: a list of tuples of form (<FieldName>, "desc"/"asc")
       limit: a max number of document to return.
       offset: an integer representing offset.
+
     Returns:
       A dictionary returned from SOLR on a search query
     """
